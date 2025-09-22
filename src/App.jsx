@@ -7,50 +7,67 @@ import RoutePage from "./pages/RoutePage";
 
 /**
  * App.jsx: contains only routes and route protection logic.
- * Protected route: /route -> accessible only if JWT exists in localStorage.
+ * Protected route: / -> accessible only if JWT exists in localStorage.
  * If not authenticated: redirect to /login
- * If authenticated and user hits /login or /signup, send them to /route
+ * If authenticated and user hits /login or /signup, send them to /
  */
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8008";
 
 function isAuthenticated() {
-  const token = localStorage.getItem("token");
-  return !!token;
+    const token = localStorage.getItem("token");
+    return !!token;
 }
 
 export default function App() {
-  const auth = isAuthenticated();
+    const auth = isAuthenticated();
 
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route
-          path="/"
-          element={<Navigate to={auth ? "/route" : "/login"} replace />}
-        />
+    return (
+        <BrowserRouter>
+            <Routes>
+                {/* Root is now the protected page */}
+                <Route
+                    path="/"
+                    element={
+                        auth ? (
+                            <RoutePage apiBase={API_BASE} />
+                        ) : (
+                            <Navigate to="/login" replace />
+                        )
+                    }
+                />
 
-        <Route
-          path="/signup"
-          element={auth ? <Navigate to="/route" replace /> : <Signup apiBase={API_BASE} />}
-        />
+                <Route
+                    path="/signup"
+                    element={
+                        auth ? (
+                            <Navigate to="/" replace />
+                        ) : (
+                            <Signup apiBase={API_BASE} />
+                        )
+                    }
+                />
 
-        <Route
-          path="/login"
-          element={auth ? <Navigate to="/route" replace /> : <Login apiBase={API_BASE} />}
-        />
+                <Route
+                    path="/login"
+                    element={
+                        auth ? (
+                            <Navigate to="/" replace />
+                        ) : (
+                            <Login apiBase={API_BASE} />
+                        )
+                    }
+                />
 
-        <Route
-          path="/route"
-          element={auth ? <RoutePage apiBase={API_BASE} /> : <Navigate to="/login" replace />}
-        />
+                {/* Backward compatibility: redirect old /route to new root */}
+                <Route path="/route" element={<Navigate to="/" replace />} />
 
-        {/* Catch all: if logged in send to /route else /login */}
-        <Route
-          path="*"
-          element={<Navigate to={auth ? "/route" : "/login"} replace />}
-        />
-      </Routes>
-    </BrowserRouter>
-  );
+                {/* Catch all: if logged in send to / else /login */}
+                <Route
+                    path="*"
+                    element={<Navigate to={auth ? "/" : "/login"} replace />}
+                />
+            </Routes>
+        </BrowserRouter>
+    );
 }
