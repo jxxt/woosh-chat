@@ -25,3 +25,6 @@ dist-ssr
 
 /*/.env
 /*/firebase_*
+
+__pycache__/
+backend/__pycache__/

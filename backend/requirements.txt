@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+firebase-admin
+python-dotenv
+argon2-cffi
+PyJWT
+email-validator
