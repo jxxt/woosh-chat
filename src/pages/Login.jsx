@@ -61,7 +61,7 @@ export default function Login({ apiBase }) {
                     <div>
                         <button
                             type="submit"
-                            className="w-full py-2 rounded bg-gray-900 text-white"
+                            className="w-full py-2 rounded bg-gray-900 text-white cursor-pointer hover:bg-gray-800 transition-colors"
                         >
                             Login
                         </button>
@@ -72,7 +72,7 @@ export default function Login({ apiBase }) {
                         <button
                             type="button"
                             onClick={() => navigate("/signup")}
-                            className="underline"
+                            className="underline cursor-pointer hover:text-gray-300 transition-colors"
                         >
                             Signup
                         </button>

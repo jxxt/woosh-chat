@@ -59,7 +59,7 @@ export default function RoutePage({ apiBase }) {
                     <h1 className="text-2xl">Protected Page</h1>
                     <button
                         onClick={logout}
-                        className="px-3 py-1 bg-gray-900 rounded"
+                        className="px-3 py-1 bg-gray-900 rounded cursor-pointer hover:bg-gray-800 transition-colors"
                     >
                         Logout
                     </button>
