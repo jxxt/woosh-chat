@@ -67,9 +67,13 @@ export default function RoutePage({ apiBase }) {
 
                 {err && <div className="text-red-400 mb-4">{err}</div>}
 
-                <div className="bg-gray-900 p-4 rounded">
+                <div className="bg-gray-900 p-4 rounded mb-6">
                     <p>{message}</p>
                 </div>
+
+                <button className="w-full px-4 py-3 bg-gray-900 rounded cursor-pointer hover:bg-gray-800 transition-colors text-white font-medium">
+                    Start New Chat
+                </button>
             </div>
         </div>
     );
