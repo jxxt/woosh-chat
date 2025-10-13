@@ -1,5 +1,5 @@
 // src/App.jsx
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
@@ -20,7 +20,26 @@ function isAuthenticated() {
 }
 
 export default function App() {
-    const auth = isAuthenticated();
+    const [auth, setAuth] = useState(isAuthenticated());
+
+    // Listen for storage changes to update auth state
+    useEffect(() => {
+        const handleStorageChange = () => {
+            setAuth(isAuthenticated());
+        };
+
+        // Check auth state on mount and when localStorage changes
+        handleStorageChange();
+        window.addEventListener("storage", handleStorageChange);
+
+        // Also check periodically for same-tab localStorage changes
+        const interval = setInterval(handleStorageChange, 100);
+
+        return () => {
+            window.removeEventListener("storage", handleStorageChange);
+            clearInterval(interval);
+        };
+    }, []);
 
     return (
         <BrowserRouter>
