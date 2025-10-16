@@ -6,6 +6,8 @@ export default function RoutePage({ apiBase }) {
     const navigate = useNavigate();
     const [message, setMessage] = useState("Loading...");
     const [err, setErr] = useState("");
+    const [showPopup, setShowPopup] = useState(false);
+    const [chatEmail, setChatEmail] = useState("");
 
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -71,9 +73,40 @@ export default function RoutePage({ apiBase }) {
                     <p>{message}</p>
                 </div>
 
-                <button className="w-full px-4 py-3 bg-gray-900 rounded cursor-pointer hover:bg-gray-800 transition-colors text-white font-medium">
+                <button
+                    onClick={() => setShowPopup(true)}
+                    className="w-full px-4 py-3 bg-gray-900 rounded cursor-pointer hover:bg-gray-800 transition-colors text-white font-medium"
+                >
                     Start New Chat
                 </button>
+
+                {showPopup && (
+                    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+                        <div className="bg-gray-900 p-6 rounded w-full max-w-md">
+                            <h2 className="text-xl mb-4">Start New Chat</h2>
+
+                            <input
+                                type="email"
+                                placeholder="Enter email to start chat"
+                                value={chatEmail}
+                                onChange={(e) => setChatEmail(e.target.value)}
+                                className="w-full px-4 py-2 bg-black border border-gray-700 rounded mb-4 text-white focus:outline-none focus:border-gray-600"
+                            />
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowPopup(false)}
+                                    className="flex-1 px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button className="flex-1 px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 transition-colors">
+                                    OK
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
