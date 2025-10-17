@@ -1,6 +1,11 @@
 // src/pages/RoutePage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+    generateDHKeypair,
+    deriveAESKey,
+    computeSharedSecret,
+} from "../utils/crypto";
 
 export default function RoutePage({ apiBase }) {
     const navigate = useNavigate();
@@ -8,6 +13,8 @@ export default function RoutePage({ apiBase }) {
     const [err, setErr] = useState("");
     const [showPopup, setShowPopup] = useState(false);
     const [chatEmail, setChatEmail] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [initError, setInitError] = useState("");
 
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -54,6 +61,89 @@ export default function RoutePage({ apiBase }) {
         navigate("/login");
     };
 
+    const handleInitChat = async () => {
+        if (!chatEmail.trim()) {
+            setInitError("Please enter an email address");
+            return;
+        }
+
+        setLoading(true);
+        setInitError("");
+
+        try {
+            // Generate DH keypair
+            const { privateKey, publicKey } = generateDHKeypair();
+
+            // Store private key temporarily (in real app, handle this securely)
+            sessionStorage.setItem("dh_private_key", privateKey);
+
+            // Call backend to initialize chat
+            const token = localStorage.getItem("token");
+            const res = await fetch(`${apiBase}/chat/init`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    peer_email: chatEmail,
+                    public_key: publicKey,
+                }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.detail || "Failed to initialize chat");
+            }
+
+            let clientAESKey = null;
+
+            // Check if this is an existing chat or a new chat
+            if (data.status === "existing") {
+                // For existing chats, just use the stored AES key
+                clientAESKey = data.aes_key;
+            } else {
+                // For new chats, compute shared secret and derive AES key
+                const serverPublicKey = data.server_public_key;
+                const sharedSecret = computeSharedSecret(
+                    privateKey,
+                    serverPublicKey
+                );
+                clientAESKey = deriveAESKey(sharedSecret);
+            }
+
+            // Store chat info
+            localStorage.setItem(
+                `chat_${data.chat_id}`,
+                JSON.stringify({
+                    chat_id: data.chat_id,
+                    peer_email: data.peer_email,
+                    peer_uid: data.peer_uid,
+                    aes_key: data.aes_key, // Use server-provided key
+                    client_aes_key: clientAESKey, // For verification
+                })
+            );
+
+            // Close popup and show success
+            setShowPopup(false);
+            setChatEmail("");
+            const statusMsg =
+                data.status === "existing"
+                    ? "Chat already exists"
+                    : "Chat initialized";
+            setMessage(
+                `${statusMsg} with ${
+                    data.peer_email
+                }! AES Key: ${data.aes_key.substring(0, 20)}...`
+            );
+        } catch (error) {
+            setInitError(error.message || "Failed to initialize chat");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-black text-white">
             <div className="w-full max-w-2xl p-6">
@@ -85,23 +175,39 @@ export default function RoutePage({ apiBase }) {
                         <div className="bg-gray-900 p-6 rounded w-full max-w-md">
                             <h2 className="text-xl mb-4">Start New Chat</h2>
 
+                            {initError && (
+                                <div className="text-red-400 mb-3 text-sm">
+                                    {initError}
+                                </div>
+                            )}
+
                             <input
                                 type="email"
                                 placeholder="Enter email to start chat"
                                 value={chatEmail}
                                 onChange={(e) => setChatEmail(e.target.value)}
-                                className="w-full px-4 py-2 bg-black border border-gray-700 rounded mb-4 text-white focus:outline-none focus:border-gray-600"
+                                disabled={loading}
+                                className="w-full px-4 py-2 bg-black border border-gray-700 rounded mb-4 text-white focus:outline-none focus:border-gray-600 disabled:opacity-50"
                             />
 
                             <div className="flex gap-3">
                                 <button
-                                    onClick={() => setShowPopup(false)}
-                                    className="flex-1 px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 transition-colors"
+                                    onClick={() => {
+                                        setShowPopup(false);
+                                        setChatEmail("");
+                                        setInitError("");
+                                    }}
+                                    disabled={loading}
+                                    className="flex-1 px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 transition-colors disabled:opacity-50"
                                 >
                                     Cancel
                                 </button>
-                                <button className="flex-1 px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 transition-colors">
-                                    OK
+                                <button
+                                    onClick={handleInitChat}
+                                    disabled={loading}
+                                    className="flex-1 px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 transition-colors disabled:opacity-50"
+                                >
+                                    {loading ? "Initializing..." : "OK"}
                                 </button>
                             </div>
                         </div>
