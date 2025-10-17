@@ -4,10 +4,11 @@
 
 **Problem:**
 When User B has a chat with User A already open, and User A sends a new message:
-- The message appears in User B's ChatView (due to polling)
-- BUT the message status remains "unread"
-- Timer never starts
-- Message won't auto-delete after 60 seconds
+
+-   The message appears in User B's ChatView (due to polling)
+-   BUT the message status remains "unread"
+-   Timer never starts
+-   Message won't auto-delete after 60 seconds
 
 **Root Cause:**
 The `mark-all-read` endpoint was only called once when the ChatView component mounted. Any new messages arriving after that were never marked as read because the endpoint wasn't called again.
@@ -23,6 +24,7 @@ The `mark-all-read` endpoint was only called once when the ChatView component mo
 **File: `src/pages/ChatView.jsx`**
 
 **Before:**
+
 ```javascript
 const fetchMessages = useCallback(async () => {
     const token = localStorage.getItem("token");
@@ -39,6 +41,7 @@ const fetchMessages = useCallback(async () => {
 ```
 
 **After:**
+
 ```javascript
 const fetchMessages = useCallback(async () => {
     const token = localStorage.getItem("token");
@@ -65,13 +68,14 @@ const fetchMessages = useCallback(async () => {
 ```
 
 **Also removed redundant call:**
+
 ```javascript
 // Before:
 fetchMessages();
-markAllAsRead();  // ← Removed this line
+markAllAsRead(); // ← Removed this line
 
 // After:
-fetchMessages();  // This now handles marking as read internally
+fetchMessages(); // This now handles marking as read internally
 ```
 
 ## How It Works Now
@@ -79,22 +83,24 @@ fetchMessages();  // This now handles marking as read internally
 ### Flow
 
 1. **User B opens chat**
-   - `fetchMessages()` called
-   - Calls `mark-all-read` → marks existing messages as read, starts timers
-   - Fetches and displays messages
+
+    - `fetchMessages()` called
+    - Calls `mark-all-read` → marks existing messages as read, starts timers
+    - Fetches and displays messages
 
 2. **Polling continues (every 2 seconds)**
-   - `fetchMessages()` called again
-   - Calls `mark-all-read` → marks any new messages as read, starts timers
-   - Fetches and displays messages (including new ones)
+
+    - `fetchMessages()` called again
+    - Calls `mark-all-read` → marks any new messages as read, starts timers
+    - Fetches and displays messages (including new ones)
 
 3. **User A sends new message**
-   - Message stored in DB with `status: "unread"`
-   - User B's next poll cycle (within 2 seconds)
-   - `mark-all-read` called → changes status to "read", sets `expires_at`
-   - Message fetched with timer info
-   - Timer displayed: 🔥 60s
-   - Auto-deletes after 60 seconds
+    - Message stored in DB with `status: "unread"`
+    - User B's next poll cycle (within 2 seconds)
+    - `mark-all-read` called → changes status to "read", sets `expires_at`
+    - Message fetched with timer info
+    - Timer displayed: 🔥 60s
+    - Auto-deletes after 60 seconds
 
 ### Sequence Diagram
 
@@ -143,10 +149,10 @@ User B (Chat Open)        Backend              User A
 
 ## Performance Impact
 
-- **Extra API calls:** 1 additional POST request per 2-second poll cycle
-- **Overhead:** Minimal - `mark-all-read` is a lightweight operation
-- **Network:** ~2 KB per request (negligible)
-- **Backend load:** Insignificant - simple status update in Firebase
+-   **Extra API calls:** 1 additional POST request per 2-second poll cycle
+-   **Overhead:** Minimal - `mark-all-read` is a lightweight operation
+-   **Network:** ~2 KB per request (negligible)
+-   **Backend load:** Insignificant - simple status update in Firebase
 
 **Trade-off:** Slightly more API calls vs. guaranteed message marking → Worth it! ✅
 
@@ -161,9 +167,9 @@ User B (Chat Open)        Backend              User A
 5. **User A sends message:** "Test message 1"
 6. **Wait 2 seconds** (for poll cycle)
 7. **Check User B's screen:**
-   - ✅ Message appears
-   - ✅ Timer shows: 🔥 60s (or slightly less)
-   - ✅ Countdown starts immediately
+    - ✅ Message appears
+    - ✅ Timer shows: 🔥 60s (or slightly less)
+    - ✅ Countdown starts immediately
 8. **User A sends another message:** "Test message 2"
 9. **Wait 2 seconds** (for poll cycle)
 10. **Check User B's screen:**
@@ -178,6 +184,7 @@ User B (Chat Open)        Backend              User A
 Check Firebase database during test:
 
 **After User B receives message (within 2s):**
+
 ```
 /chats/{chat_id}/messages/{msg_id}
   - status: "read"          ✅
@@ -186,6 +193,7 @@ Check Firebase database during test:
 ```
 
 **After 60 seconds:**
+
 ```
 /chats/{chat_id}/messages/{msg_id}
   - [DELETED]               ✅
@@ -194,20 +202,24 @@ Check Firebase database during test:
 ## Alternative Approaches Considered
 
 ### Option 2: Mark Individual Messages
-- More granular but requires multiple API calls
-- Not chosen: More complex for same result
+
+-   More granular but requires multiple API calls
+-   Not chosen: More complex for same result
 
 ### Option 3: Backend Auto-Mark on Fetch
-- Simpler for frontend but less explicit
-- Not chosen: Could accidentally mark messages
+
+-   Simpler for frontend but less explicit
+-   Not chosen: Could accidentally mark messages
 
 ### Option 4: Query Parameter
-- Most explicit control
-- Not chosen: Requires backend changes, more complex
+
+-   Most explicit control
+-   Not chosen: Requires backend changes, more complex
 
 ### Option 5: WebSocket
-- Best for real-time but bigger architectural change
-- Not chosen: Out of scope for current implementation
+
+-   Best for real-time but bigger architectural change
+-   Not chosen: Out of scope for current implementation
 
 ## Conclusion
 
@@ -227,4 +239,4 @@ The issue is now resolved. Messages arriving while a chat is already open will b
 
 ---
 
-*Fix implemented: October 17, 2025*
+_Fix implemented: October 17, 2025_
