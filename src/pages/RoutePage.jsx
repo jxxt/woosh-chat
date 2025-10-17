@@ -25,7 +25,7 @@ export default function RoutePage({ apiBase }) {
             return;
         }
 
-        (async () => {
+        const fetchData = async () => {
             try {
                 // Fetch user info
                 const res = await fetch(`${apiBase}/protected`, {
@@ -67,7 +67,15 @@ export default function RoutePage({ apiBase }) {
                 // Network or unexpected error: show message but keep token
                 setErr(error?.message || "Network error");
             }
-        })();
+        };
+
+        // Initial fetch
+        fetchData();
+
+        // Poll every 3 seconds for unread updates
+        const pollInterval = setInterval(fetchData, 3000);
+
+        return () => clearInterval(pollInterval);
     }, [apiBase, navigate]);
 
     const logout = () => {
@@ -204,10 +212,13 @@ export default function RoutePage({ apiBase }) {
                             {chats.map((chat) => (
                                 <div
                                     key={chat.chat_id}
+                                    onClick={() =>
+                                        navigate(`/chat/${chat.chat_id}`)
+                                    }
                                     className="bg-gray-900 p-4 rounded hover:bg-gray-800 transition-colors cursor-pointer"
                                 >
                                     <div className="flex items-center justify-between">
-                                        <div>
+                                        <div className="flex-1">
                                             <p className="font-medium">
                                                 {chat.peer_email}
                                             </p>
@@ -215,6 +226,14 @@ export default function RoutePage({ apiBase }) {
                                                 Chat ID: {chat.chat_id}
                                             </p>
                                         </div>
+                                        {chat.unread_count > 0 && (
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
+                                                <span className="text-xs bg-green-500 text-white px-2 py-1 rounded-full">
+                                                    {chat.unread_count}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ))}

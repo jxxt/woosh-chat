@@ -158,7 +158,7 @@ async def initialize_chat(body: ChatInitRequest, request: Request):
 @router.get("/chat/list")
 async def list_chats(request: Request):
     """
-    Get list of all chats for the current user
+    Get list of all chats for the current user with unread counts
     """
     payload = verify_token_from_header(request)
     user_uid = payload.get("uid")
@@ -169,11 +169,13 @@ async def list_chats(request: Request):
 
     chat_list = []
     for chat_id, chat_info in user_chats.items():
+        unread_count = chat_info.get("unread_count", 0)
         chat_list.append({
             "chat_id": chat_id,
             "peer_email": chat_info.get("peer_email"),
             "peer_uid": chat_info.get("peer_uid"),
-            "created_at": chat_info.get("created_at")
+            "created_at": chat_info.get("created_at"),
+            "unread_count": unread_count
         })
 
     return {"chats": chat_list}

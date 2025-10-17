@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 import RoutePage from "./pages/RoutePage";
+import ChatView from "./pages/ChatView";
 
 /**
  * App.jsx: contains only routes and route protection logic.
@@ -74,6 +75,18 @@ export default function App() {
                             <Navigate to="/" replace />
                         ) : (
                             <Login apiBase={API_BASE} />
+                        )
+                    }
+                />
+
+                {/* Chat view route (protected) */}
+                <Route
+                    path="/chat/:chatId"
+                    element={
+                        auth ? (
+                            <ChatView apiBase={API_BASE} />
+                        ) : (
+                            <Navigate to="/login" replace />
                         )
                     }
                 />

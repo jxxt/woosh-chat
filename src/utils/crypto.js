@@ -91,25 +91,52 @@ function modPow(base, exponent, modulus) {
 }
 
 /**
- * Encrypt message using AES-256
+ * Encrypt message using AES-256-CBC
+ * Returns base64-encoded string with IV prepended
  */
 export function encryptMessage(message, aesKeyBase64) {
     const key = CryptoJS.enc.Base64.parse(aesKeyBase64);
+
+    // Generate random IV (16 bytes)
+    const iv = CryptoJS.lib.WordArray.random(16);
+
+    // Encrypt
     const encrypted = CryptoJS.AES.encrypt(message, key, {
+        iv: iv,
         mode: CryptoJS.mode.CBC,
         padding: CryptoJS.pad.Pkcs7,
     });
-    return encrypted.toString();
+
+    // Combine IV and ciphertext, then base64 encode
+    const combined = iv.concat(encrypted.ciphertext);
+    return CryptoJS.enc.Base64.stringify(combined);
 }
 
 /**
- * Decrypt message using AES-256
+ * Decrypt message using AES-256-CBC
+ * Expects base64-encoded string with IV prepended
  */
-export function decryptMessage(encryptedMessage, aesKeyBase64) {
+export function decryptMessage(encryptedBase64, aesKeyBase64) {
     const key = CryptoJS.enc.Base64.parse(aesKeyBase64);
-    const decrypted = CryptoJS.AES.decrypt(encryptedMessage, key, {
+
+    // Decode the base64 string
+    const combined = CryptoJS.enc.Base64.parse(encryptedBase64);
+
+    // Extract IV (first 16 bytes / 4 words)
+    const iv = CryptoJS.lib.WordArray.create(combined.words.slice(0, 4), 16);
+
+    // Extract ciphertext (remaining bytes)
+    const ciphertext = CryptoJS.lib.WordArray.create(
+        combined.words.slice(4),
+        combined.sigBytes - 16
+    );
+
+    // Decrypt
+    const decrypted = CryptoJS.AES.decrypt({ ciphertext: ciphertext }, key, {
+        iv: iv,
         mode: CryptoJS.mode.CBC,
         padding: CryptoJS.pad.Pkcs7,
     });
+
     return decrypted.toString(CryptoJS.enc.Utf8);
 }
