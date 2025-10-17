@@ -11,7 +11,6 @@ export default function RoutePage({ apiBase }) {
     const navigate = useNavigate();
     const [message, setMessage] = useState("Loading...");
     const [err, setErr] = useState("");
-    const [showPopup, setShowPopup] = useState(false);
     const [chatEmail, setChatEmail] = useState("");
     const [loading, setLoading] = useState(false);
     const [initError, setInitError] = useState("");
@@ -147,8 +146,7 @@ export default function RoutePage({ apiBase }) {
                 })
             );
 
-            // Close popup and show success
-            setShowPopup(false);
+            // Clear input and show success
             setChatEmail("");
             const statusMsg =
                 data.status === "existing"
@@ -204,32 +202,42 @@ export default function RoutePage({ apiBase }) {
                 <div className="flex-1 overflow-y-auto mb-6">
                     <h2 className="text-xl mb-4">Your Chats</h2>
                     {chats.length === 0 ? (
-                        <div className="bg-gray-900 p-4 rounded text-gray-400 text-center">
+                        <div className="bg-gray-900 p-6 rounded-2xl text-gray-400 text-center">
                             No chats yet. Start a new chat to begin messaging.
                         </div>
                     ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                             {chats.map((chat) => (
                                 <div
                                     key={chat.chat_id}
                                     onClick={() =>
                                         navigate(`/chat/${chat.chat_id}`)
                                     }
-                                    className="bg-gray-900 p-4 rounded hover:bg-gray-800 transition-colors cursor-pointer"
+                                    className="bg-gradient-to-br from-gray-800 to-gray-900 p-5 rounded-2xl hover:from-gray-700 hover:to-gray-800 transition-colors duration-200 cursor-pointer shadow-lg"
                                 >
                                     <div className="flex items-center justify-between">
-                                        <div className="flex-1">
-                                            <p className="font-medium">
-                                                {chat.peer_email}
-                                            </p>
-                                            <p className="text-sm text-gray-400">
-                                                Chat ID: {chat.chat_id}
-                                            </p>
+                                        <div className="flex items-center gap-4">
+                                            {/* Avatar Circle */}
+                                            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                                {chat.peer_email.charAt(0).toUpperCase()}
+                                            </div>
+                                            
+                                            {/* Chat Info */}
+                                            <div>
+                                                <p className="font-semibold text-lg text-white">
+                                                    {chat.peer_email}
+                                                </p>
+                                                <p className="text-sm text-gray-400">
+                                                    Tap to open chat
+                                                </p>
+                                            </div>
                                         </div>
+                                        
+                                        {/* Notification Badge */}
                                         {chat.unread_count > 0 && (
                                             <div className="flex items-center gap-2">
                                                 <span className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
-                                                <span className="text-xs bg-green-500 text-white px-2 py-1 rounded-full">
+                                                <span className="text-sm bg-green-500 text-white px-3 py-1.5 rounded-full font-medium">
                                                     {chat.unread_count}
                                                 </span>
                                             </div>
@@ -241,57 +249,39 @@ export default function RoutePage({ apiBase }) {
                     )}
                 </div>
 
-                {/* Button fixed at bottom */}
-                <button
-                    onClick={() => setShowPopup(true)}
-                    className="w-full px-4 py-3 bg-gray-900 rounded cursor-pointer hover:bg-gray-800 transition-colors text-white font-medium"
-                >
-                    Start New Chat
-                </button>
-
-                {showPopup && (
-                    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-                        <div className="bg-gray-900 p-6 rounded w-full max-w-md">
-                            <h2 className="text-xl mb-4">Start New Chat</h2>
-
-                            {initError && (
-                                <div className="text-red-400 mb-3 text-sm">
-                                    {initError}
-                                </div>
-                            )}
-
-                            <input
-                                type="email"
-                                placeholder="Enter email to start chat"
-                                value={chatEmail}
-                                onChange={(e) => setChatEmail(e.target.value)}
-                                disabled={loading}
-                                className="w-full px-4 py-2 bg-black border border-gray-700 rounded mb-4 text-white focus:outline-none focus:border-gray-600 disabled:opacity-50"
-                            />
-
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => {
-                                        setShowPopup(false);
-                                        setChatEmail("");
-                                        setInitError("");
-                                    }}
-                                    disabled={loading}
-                                    className="flex-1 px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 transition-colors disabled:opacity-50"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleInitChat}
-                                    disabled={loading}
-                                    className="flex-1 px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 transition-colors disabled:opacity-50"
-                                >
-                                    {loading ? "Initializing..." : "OK"}
-                                </button>
-                            </div>
+                {/* Start New Chat Section - Fixed at bottom */}
+                <div className="bg-gray-900 rounded-2xl p-4 shadow-lg">
+                    <h3 className="text-sm text-gray-400 mb-3">Start New Chat</h3>
+                    
+                    {initError && (
+                        <div className="text-red-400 mb-3 text-sm">
+                            {initError}
                         </div>
+                    )}
+
+                    <div className="flex gap-3">
+                        <input
+                            type="email"
+                            placeholder="Enter email address"
+                            value={chatEmail}
+                            onChange={(e) => setChatEmail(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && !loading && chatEmail.trim()) {
+                                    handleInitChat();
+                                }
+                            }}
+                            disabled={loading}
+                            className="flex-1 px-4 py-3 bg-black border border-gray-700 rounded-xl text-white focus:outline-none focus:border-gray-500 hover:border-gray-600 transition-colors disabled:opacity-50"
+                        />
+                        <button
+                            onClick={handleInitChat}
+                            disabled={loading || !chatEmail.trim()}
+                            className="px-6 py-3 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl hover:from-purple-600 hover:to-blue-600 transition-colors duration-200 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                        >
+                            {loading ? "..." : "Start"}
+                        </button>
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );

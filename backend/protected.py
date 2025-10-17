@@ -25,4 +25,4 @@ def verify_token_from_header(request: Request):
 async def protected_route(request: Request):
     payload = verify_token_from_header(request)
     # You can use payload['uid'] to fetch user-specific data
-    return {"message": f"Hello {payload.get('email')}, this is protected data."}
+    return {"message": f"Welcome to WooshChat, a secure ephemeral chat service!"}

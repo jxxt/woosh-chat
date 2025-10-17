@@ -368,7 +368,7 @@ export default function ChatView({ apiBase }) {
                         type="text"
                         value={inputMessage}
                         onChange={(e) => setInputMessage(e.target.value)}
-                        placeholder="Type a message... (Press Enter to send)"
+                        placeholder="Type a message"
                         disabled={sending}
                         autoFocus
                         className="flex-1 px-4 py-2 bg-black border border-gray-700 rounded focus:outline-none focus:border-gray-600 disabled:opacity-50 text-white"
@@ -382,8 +382,7 @@ export default function ChatView({ apiBase }) {
                     </button>
                 </div>
                 <p className="text-xs text-gray-400 mt-2">
-                    Messages disappear 1 minute after being read • Press Enter
-                    to send
+                    Messages disappear <span className="text-yellow-400">60 seconds</span> after being read
                 </p>
             </form>
         </div>
