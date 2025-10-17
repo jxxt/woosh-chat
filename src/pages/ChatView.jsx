@@ -116,7 +116,7 @@ export default function ChatView({ apiBase }) {
             return;
         }
 
-        // Get stored chat info
+        // Get stored chat info from localStorage (if available)
         const chatInfoStr = localStorage.getItem(`chat_${chatId}`);
         if (chatInfoStr) {
             const chatInfo = JSON.parse(chatInfoStr);
@@ -133,8 +133,57 @@ export default function ChatView({ apiBase }) {
                 // Extract UID from JWT payload
                 const payload = JSON.parse(atob(token.split(".")[1]));
                 setCurrentUid(payload.uid);
+
+                // Fetch chat details from backend to get peer email (always, for everyone)
+                return fetch(`${apiBase}/chat/${chatId}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
             })
-            .catch((err) => console.error("Error fetching user info:", err));
+            .then((res) => {
+                if (res.ok) {
+                    return res.json();
+                }
+                throw new Error("Failed to fetch chat details");
+            })
+            .then((chatData) => {
+                // Get the peer's info from participants
+                const participants = chatData.participants || {};
+                const payload = JSON.parse(atob(token.split(".")[1]));
+                const currentUid = payload.uid;
+
+                // Find the other participant (peer)
+                for (const [uid, userInfo] of Object.entries(participants)) {
+                    if (uid !== currentUid) {
+                        setPeerEmail(userInfo.email);
+
+                        // Update localStorage with peer email
+                        const chatInfoStr = localStorage.getItem(
+                            `chat_${chatId}`
+                        );
+                        if (chatInfoStr) {
+                            const chatInfo = JSON.parse(chatInfoStr);
+                            chatInfo.peer_email = userInfo.email;
+                            localStorage.setItem(
+                                `chat_${chatId}`,
+                                JSON.stringify(chatInfo)
+                            );
+                        } else {
+                            // Create chat info if it doesn't exist
+                            localStorage.setItem(
+                                `chat_${chatId}`,
+                                JSON.stringify({
+                                    chat_id: chatId,
+                                    peer_email: userInfo.email,
+                                    peer_uid: uid,
+                                    aes_key: chatData.aes_key,
+                                })
+                            );
+                        }
+                        break;
+                    }
+                }
+            })
+            .catch((err) => console.error("Error fetching chat info:", err));
 
         // Initial message fetch (will also mark as read)
         fetchMessages();
