@@ -15,6 +15,8 @@ export default function RoutePage({ apiBase }) {
     const [chatEmail, setChatEmail] = useState("");
     const [loading, setLoading] = useState(false);
     const [initError, setInitError] = useState("");
+    const [userEmail, setUserEmail] = useState("");
+    const [chats, setChats] = useState([]);
 
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -25,6 +27,7 @@ export default function RoutePage({ apiBase }) {
 
         (async () => {
             try {
+                // Fetch user info
                 const res = await fetch(`${apiBase}/protected`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
@@ -34,21 +37,32 @@ export default function RoutePage({ apiBase }) {
                         data.message ||
                             "You have access to this protected route."
                     );
-                    return;
-                }
-
-                // If unauthorized, clear token and redirect to login
-                if (res.status === 401 || res.status === 403) {
+                    // Extract email from message or set it directly if available
+                    const emailMatch = data.message?.match(/Hello (.+?),/);
+                    if (emailMatch) {
+                        setUserEmail(emailMatch[1]);
+                    }
+                } else if (res.status === 401 || res.status === 403) {
+                    // If unauthorized, clear token and redirect to login
                     setErr(data.detail || data.error || "Unauthorized");
                     localStorage.removeItem("token");
                     setTimeout(() => navigate("/login"), 800);
                     return;
+                } else {
+                    // For other errors (e.g., backend down), show error but do not logout
+                    setErr(
+                        data.detail || data.error || `Error ${res.status || ""}`
+                    );
                 }
 
-                // For other errors (e.g., backend down), show error but do not logout
-                setErr(
-                    data.detail || data.error || `Error ${res.status || ""}`
-                );
+                // Fetch chats list
+                const chatsRes = await fetch(`${apiBase}/chat/list`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (chatsRes.ok) {
+                    const chatsData = await chatsRes.json();
+                    setChats(chatsData.chats || []);
+                }
             } catch (error) {
                 // Network or unexpected error: show message but keep token
                 setErr(error?.message || "Network error");
@@ -137,6 +151,16 @@ export default function RoutePage({ apiBase }) {
                     data.peer_email
                 }! AES Key: ${data.aes_key.substring(0, 20)}...`
             );
+
+            // Refresh chats list
+            const refreshToken = localStorage.getItem("token");
+            const chatsRes = await fetch(`${apiBase}/chat/list`, {
+                headers: { Authorization: `Bearer ${refreshToken}` },
+            });
+            if (chatsRes.ok) {
+                const chatsData = await chatsRes.json();
+                setChats(chatsData.chats || []);
+            }
         } catch (error) {
             setInitError(error.message || "Failed to initialize chat");
         } finally {
@@ -145,10 +169,13 @@ export default function RoutePage({ apiBase }) {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-black text-white">
-            <div className="w-full max-w-2xl p-6">
+        <div className="min-h-screen bg-black text-white flex flex-col">
+            <div className="w-full max-w-2xl mx-auto p-6 flex flex-col h-screen">
+                {/* Header */}
                 <div className="flex items-center justify-between mb-6">
-                    <h1 className="text-2xl">Protected Page</h1>
+                    <h1 className="text-2xl">
+                        {userEmail ? `Welcome ${userEmail}` : "Welcome"}
+                    </h1>
                     <button
                         onClick={logout}
                         className="px-3 py-1 bg-gray-900 rounded cursor-pointer hover:bg-gray-800 transition-colors"
@@ -159,10 +186,43 @@ export default function RoutePage({ apiBase }) {
 
                 {err && <div className="text-red-400 mb-4">{err}</div>}
 
-                <div className="bg-gray-900 p-4 rounded mb-6">
-                    <p>{message}</p>
+                {message && message !== "Loading..." && (
+                    <div className="bg-green-900 bg-opacity-30 p-3 rounded mb-4 text-sm">
+                        {message}
+                    </div>
+                )}
+
+                {/* Chats List - Grows to fill available space */}
+                <div className="flex-1 overflow-y-auto mb-6">
+                    <h2 className="text-xl mb-4">Your Chats</h2>
+                    {chats.length === 0 ? (
+                        <div className="bg-gray-900 p-4 rounded text-gray-400 text-center">
+                            No chats yet. Start a new chat to begin messaging.
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {chats.map((chat) => (
+                                <div
+                                    key={chat.chat_id}
+                                    className="bg-gray-900 p-4 rounded hover:bg-gray-800 transition-colors cursor-pointer"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="font-medium">
+                                                {chat.peer_email}
+                                            </p>
+                                            <p className="text-sm text-gray-400">
+                                                Chat ID: {chat.chat_id}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
+                {/* Button fixed at bottom */}
                 <button
                     onClick={() => setShowPopup(true)}
                     className="w-full px-4 py-3 bg-gray-900 rounded cursor-pointer hover:bg-gray-800 transition-colors text-white font-medium"
