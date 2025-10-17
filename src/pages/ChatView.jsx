@@ -31,6 +31,16 @@ export default function ChatView({ apiBase }) {
         if (!token) return;
 
         try {
+            // Mark all messages as read first (so any new messages get marked)
+            await fetch(`${apiBase}/chat/${chatId}/mark-all-read`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            }).catch((err) => console.error("Error marking as read:", err));
+
+            // Then fetch messages
             const res = await fetch(`${apiBase}/chat/${chatId}/messages`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -125,13 +135,10 @@ export default function ChatView({ apiBase }) {
             })
             .catch((err) => console.error("Error fetching user info:", err));
 
-        // Initial message fetch
+        // Initial message fetch (will also mark as read)
         fetchMessages();
 
-        // Mark all messages as read when opening chat
-        markAllAsRead();
-
-        // Poll for new messages every 2 seconds
+        // Poll for new messages every 2 seconds (will also mark as read)
         pollIntervalRef.current = setInterval(() => {
             fetchMessages();
         }, 2000);
