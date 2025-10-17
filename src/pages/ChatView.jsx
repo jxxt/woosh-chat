@@ -16,6 +16,7 @@ export default function ChatView({ apiBase }) {
     const [error, setError] = useState("");
     const messagesEndRef = useRef(null);
     const pollIntervalRef = useRef(null);
+    const inputRef = useRef(null);
 
     // Scroll to bottom of messages
     const scrollToBottom = () => {
@@ -129,7 +130,7 @@ export default function ChatView({ apiBase }) {
         })
             .then((res) => res.json())
             .then(() => {
-                // Extract UID from JWT payload or use a dedicated endpoint
+                // Extract UID from JWT payload
                 const payload = JSON.parse(atob(token.split(".")[1]));
                 setCurrentUid(payload.uid);
             })
@@ -182,6 +183,11 @@ export default function ChatView({ apiBase }) {
             // Clear input and fetch messages
             setInputMessage("");
             fetchMessages();
+
+            // Refocus input after sending
+            setTimeout(() => {
+                inputRef.current?.focus();
+            }, 100);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -309,11 +315,13 @@ export default function ChatView({ apiBase }) {
             >
                 <div className="flex gap-2">
                     <input
+                        ref={inputRef}
                         type="text"
                         value={inputMessage}
                         onChange={(e) => setInputMessage(e.target.value)}
-                        placeholder="Type a message..."
+                        placeholder="Type a message... (Press Enter to send)"
                         disabled={sending}
+                        autoFocus
                         className="flex-1 px-4 py-2 bg-black border border-gray-700 rounded focus:outline-none focus:border-gray-600 disabled:opacity-50 text-white"
                     />
                     <button
@@ -325,7 +333,8 @@ export default function ChatView({ apiBase }) {
                     </button>
                 </div>
                 <p className="text-xs text-gray-400 mt-2">
-                    Messages disappear 1 minute after being read
+                    Messages disappear 1 minute after being read • Press Enter
+                    to send
                 </p>
             </form>
         </div>
